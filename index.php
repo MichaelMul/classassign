@@ -11,9 +11,29 @@ if (isset($_POST['add_student']) && !empty($_POST['student_name'])) {
   Student::add($_SESSION['students'], $_POST['student_name']);
   header('Location: index.php'); exit;
 }
+// Handle update student
+if (isset($_POST['update_student']) && isset($_POST['student_index']) && isset($_POST['student_name'])) {
+  Student::update($_SESSION['students'], (int)$_POST['student_index'], $_POST['student_name']);
+  header('Location: index.php'); exit;
+}
+// Handle delete student
+if (isset($_POST['delete_student']) && isset($_POST['student_index'])) {
+  Student::delete($_SESSION['students'], (int)$_POST['student_index']);
+  header('Location: index.php'); exit;
+}
 // Handle add class
 if (isset($_POST['add_class']) && !empty($_POST['class_name'])) {
   ClassModel::add($_SESSION['classes'], $_POST['class_name']);
+  header('Location: index.php'); exit;
+}
+// Handle update class
+if (isset($_POST['update_class']) && isset($_POST['class_index']) && isset($_POST['class_name'])) {
+  ClassModel::update($_SESSION['classes'], (int)$_POST['class_index'], $_POST['class_name']);
+  header('Location: index.php'); exit;
+}
+// Handle delete class
+if (isset($_POST['delete_class']) && isset($_POST['class_index'])) {
+  ClassModel::delete($_SESSION['classes'], (int)$_POST['class_index']);
   header('Location: index.php'); exit;
 }
 
@@ -63,23 +83,23 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="editStudentModal<?= $i ?>" tabindex="-1" aria-labelledby="editStudentLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="editStudentLabel<?= $i ?>">Edit Student</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      <form>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="editStudentLabel<?= $i ?>">Edit Student</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
                         <div class="mb-3">
                           <label class="form-label">Student Name</label>
-                          <input type="text" class="form-control" value="<?= htmlspecialchars($s) ?>" disabled>
+                          <input type="text" class="form-control" name="student_name" value="<?= htmlspecialchars($s) ?>" required>
+                          <input type="hidden" name="student_index" value="<?= $i ?>">
                         </div>
-                        <div class="alert alert-info small">-</div>
-                      </form>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                      <button type="button" class="btn btn-primary" disabled>Save changes</button>
-                    </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" name="update_student">Save changes</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -87,18 +107,20 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="deleteStudentModal<?= $i ?>" tabindex="-1" aria-labelledby="deleteStudentLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="deleteStudentLabel<?= $i ?>">Delete Student</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      Are you sure you want to delete <strong><?= htmlspecialchars($s) ?></strong>?<br>
-                      <div class="alert alert-info small mt-2 mb-0">-</div>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                      <button type="button" class="btn btn-danger" disabled>Delete</button>
-                    </div>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="deleteStudentLabel<?= $i ?>">Delete Student</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        Are you sure you want to delete <strong><?= htmlspecialchars($s) ?></strong>?<br>
+                        <input type="hidden" name="student_index" value="<?= $i ?>">
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="delete_student">Delete</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -138,23 +160,23 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="editClassModal<?= $i ?>" tabindex="-1" aria-labelledby="editClassLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="editClassLabel<?= $i ?>">Edit Class</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      <form>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="editClassLabel<?= $i ?>">Edit Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
                         <div class="mb-3">
                           <label class="form-label">Class Name</label>
-                          <input type="text" class="form-control" value="<?= htmlspecialchars($c) ?>" disabled>
+                          <input type="text" class="form-control" name="class_name" value="<?= htmlspecialchars($c) ?>" required>
+                          <input type="hidden" name="class_index" value="<?= $i ?>">
                         </div>
-                        <div class="alert alert-info small">-</div>
-                      </form>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                      <button type="button" class="btn btn-primary" disabled>Save changes</button>
-                    </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" name="update_class">Save changes</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -162,18 +184,20 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="deleteClassModal<?= $i ?>" tabindex="-1" aria-labelledby="deleteClassLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="deleteClassLabel<?= $i ?>">Delete Class</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      Are you sure you want to delete <strong><?= htmlspecialchars($c) ?></strong>?<br>
-                      <div class="alert alert-info small mt-2 mb-0">-</div>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                      <button type="button" class="btn btn-danger" disabled>Delete</button>
-                    </div>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="deleteClassLabel<?= $i ?>">Delete Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        Are you sure you want to delete <strong><?= htmlspecialchars($c) ?></strong>?<br>
+                        <input type="hidden" name="class_index" value="<?= $i ?>">
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="delete_class">Delete</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
