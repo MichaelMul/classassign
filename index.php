@@ -5,10 +5,23 @@ require_once 'ClassModel.php';
 
 if (!isset($_SESSION['students'])) $_SESSION['students'] = [];
 if (!isset($_SESSION['classes'])) $_SESSION['classes'] = [];
+// ...existing code...
+// Initialize assignments array in session
+if (!isset($_SESSION['assignments'])) $_SESSION['assignments'] = [];
 
 // Handle add student
 if (isset($_POST['add_student']) && !empty($_POST['student_name'])) {
   Student::add($_SESSION['students'], $_POST['student_name']);
+  header('Location: index.php'); exit;
+}
+// Handle update student
+if (isset($_POST['update_student']) && isset($_POST['student_index']) && isset($_POST['student_name'])) {
+  Student::update($_SESSION['students'], (int)$_POST['student_index'], $_POST['student_name']);
+  header('Location: index.php'); exit;
+}
+// Handle delete student
+if (isset($_POST['delete_student']) && isset($_POST['student_index'])) {
+  Student::delete($_SESSION['students'], (int)$_POST['student_index']);
   header('Location: index.php'); exit;
 }
 // Handle add class
@@ -16,12 +29,41 @@ if (isset($_POST['add_class']) && !empty($_POST['class_name'])) {
   ClassModel::add($_SESSION['classes'], $_POST['class_name']);
   header('Location: index.php'); exit;
 }
+// Handle update class
+if (isset($_POST['update_class']) && isset($_POST['class_index']) && isset($_POST['class_name'])) {
+  ClassModel::update($_SESSION['classes'], (int)$_POST['class_index'], $_POST['class_name']);
+  header('Location: index.php'); exit;
+}
+// Handle delete class
+if (isset($_POST['delete_class']) && isset($_POST['class_index'])) {
+  ClassModel::delete($_SESSION['classes'], (int)$_POST['class_index']);
+  header('Location: index.php'); exit;
+}
+// ...existing code...
+// Handle assign student to class (Create)
+if (isset($_POST['assign']) && isset($_POST['student_id']) && isset($_POST['class_id'])) {
+  $sid = (int)$_POST['student_id'];
+  $cid = (int)$_POST['class_id'];
+
+  // Make sure indexes exist
+  if (isset($_SESSION['students'][$sid]) && isset($_SESSION['classes'][$cid])) {
+    // Optional: avoid duplicate assignment
+    $exists = false;
+    foreach ($_SESSION['assignments'] as $a) {
+      if ($a['student_id'] === $sid && $a['class_id'] === $cid) { $exists = true; break; }
+    }
+    if (!$exists) {
+      $_SESSION['assignments'][] = ['student_id' => $sid, 'class_id' => $cid];
+    }
+  }
+  header('Location: index.php'); exit;
+}
 
 $students = Student::getAll($_SESSION['students']);
 $classes = ClassModel::getAll($_SESSION['classes']);
 
-// Placeholder for assignments (no backend logic)
-$assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
+// Use assignments from session
+$assignments = $_SESSION['assignments'];
 ?>
 <!doctype html>
 <html lang="en">
@@ -63,23 +105,23 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="editStudentModal<?= $i ?>" tabindex="-1" aria-labelledby="editStudentLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="editStudentLabel<?= $i ?>">Edit Student</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      <form>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="editStudentLabel<?= $i ?>">Edit Student</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
                         <div class="mb-3">
                           <label class="form-label">Student Name</label>
-                          <input type="text" class="form-control" value="<?= htmlspecialchars($s) ?>" disabled>
+                          <input type="text" class="form-control" name="student_name" value="<?= htmlspecialchars($s) ?>" required>
+                          <input type="hidden" name="student_index" value="<?= $i ?>">
                         </div>
-                        <div class="alert alert-info small">-</div>
-                      </form>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                      <button type="button" class="btn btn-primary" disabled>Save changes</button>
-                    </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" name="update_student">Save changes</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -87,18 +129,20 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="deleteStudentModal<?= $i ?>" tabindex="-1" aria-labelledby="deleteStudentLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="deleteStudentLabel<?= $i ?>">Delete Student</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      Are you sure you want to delete <strong><?= htmlspecialchars($s) ?></strong>?<br>
-                      <div class="alert alert-info small mt-2 mb-0">-</div>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                      <button type="button" class="btn btn-danger" disabled>Delete</button>
-                    </div>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="deleteStudentLabel<?= $i ?>">Delete Student</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        Are you sure you want to delete <strong><?= htmlspecialchars($s) ?></strong>?<br>
+                        <input type="hidden" name="student_index" value="<?= $i ?>">
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="delete_student">Delete</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -138,23 +182,23 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="editClassModal<?= $i ?>" tabindex="-1" aria-labelledby="editClassLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="editClassLabel<?= $i ?>">Edit Class</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      <form>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="editClassLabel<?= $i ?>">Edit Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
                         <div class="mb-3">
                           <label class="form-label">Class Name</label>
-                          <input type="text" class="form-control" value="<?= htmlspecialchars($c) ?>" disabled>
+                          <input type="text" class="form-control" name="class_name" value="<?= htmlspecialchars($c) ?>" required>
+                          <input type="hidden" name="class_index" value="<?= $i ?>">
                         </div>
-                        <div class="alert alert-info small">-</div>
-                      </form>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                      <button type="button" class="btn btn-primary" disabled>Save changes</button>
-                    </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" name="update_class">Save changes</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -162,18 +206,20 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               <div class="modal fade" id="deleteClassModal<?= $i ?>" tabindex="-1" aria-labelledby="deleteClassLabel<?= $i ?>" aria-hidden="true">
                 <div class="modal-dialog">
                   <div class="modal-content">
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="deleteClassLabel<?= $i ?>">Delete Class</h5>
-                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                      Are you sure you want to delete <strong><?= htmlspecialchars($c) ?></strong>?<br>
-                      <div class="alert alert-info small mt-2 mb-0">-</div>
-                    </div>
-                    <div class="modal-footer">
-                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                      <button type="button" class="btn btn-danger" disabled>Delete</button>
-                    </div>
+                    <form method="POST">
+                      <div class="modal-header">
+                        <h5 class="modal-title" id="deleteClassLabel<?= $i ?>">Delete Class</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        Are you sure you want to delete <strong><?= htmlspecialchars($c) ?></strong>?<br>
+                        <input type="hidden" name="class_index" value="<?= $i ?>">
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger" name="delete_class">Delete</button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -187,16 +233,16 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
     </div>
   </div>
 
-  <!-- Assign Student to Class UI -->
+  <!-- Assign Student to Class (works with sessions, no SQL) -->
   <div class="row g-4 mt-4">
     <div class="col-md-8 mx-auto">
       <div class="card">
         <div class="card-header">Assign Student to Class</div>
         <div class="card-body">
-          <form class="row gy-2 gx-2 align-items-end">
+          <form method="POST" class="row gy-2 gx-2 align-items-end">
             <div class="col-12 col-md-5">
               <label class="form-label">Student</label>
-              <select class="form-select" name="student_id" required disabled>
+              <select class="form-select" name="student_id" required>
                 <option value="">-- Select Student --</option>
                 <?php foreach ($students as $i => $s): ?>
                   <option value="<?= $i ?>"><?= htmlspecialchars($s) ?></option>
@@ -205,7 +251,7 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
             </div>
             <div class="col-12 col-md-5">
               <label class="form-label">Class</label>
-              <select class="form-select" name="class_id" required disabled>
+              <select class="form-select" name="class_id" required>
                 <option value="">-- Select Class --</option>
                 <?php foreach ($classes as $i => $c): ?>
                   <option value="<?= $i ?>"><?= htmlspecialchars($c) ?></option>
@@ -213,17 +259,31 @@ $assignments = isset($_SESSION['assignments']) ? $_SESSION['assignments'] : [];
               </select>
             </div>
             <div class="col-12 col-md-2 text-md-end">
-              <button type="button" class="btn btn-success w-100" disabled>Assign</button>
+              <button type="submit" class="btn btn-success w-100" name="assign">Assign</button>
             </div>
           </form>
-          <div class="alert alert-info mt-3 mb-0">-</div>
         </div>
       </div>
       <div class="card mt-3">
         <div class="card-header">Assignments</div>
         <div class="card-body p-0">
           <ul class="list-group list-group-flush">
-            <li class="list-group-item text-muted">-</li>
+            <?php
+            $shown = false;
+            foreach ($assignments as $a):
+              $sid = $a['student_id'];
+              $cid = $a['class_id'];
+              // Skip invalid pairs if indexes no longer exist
+              if (!isset($students[$sid]) || !isset($classes[$cid])) continue;
+              $shown = true;
+            ?>
+              <li class="list-group-item">
+                <?= htmlspecialchars($students[$sid]) ?> ➜ <?= htmlspecialchars($classes[$cid]) ?>
+              </li>
+            <?php endforeach; ?>
+            <?php if (!$shown): ?>
+              <li class="list-group-item text-muted">No assignments yet.</li>
+            <?php endif; ?>
           </ul>
         </div>
       </div>
