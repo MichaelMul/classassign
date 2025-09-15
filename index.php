@@ -5,8 +5,6 @@ require_once 'ClassModel.php';
 
 if (!isset($_SESSION['students'])) $_SESSION['students'] = [];
 if (!isset($_SESSION['classes'])) $_SESSION['classes'] = [];
-// ...existing code...
-// Initialize assignments array in session
 if (!isset($_SESSION['assignments'])) $_SESSION['assignments'] = [];
 
 // Handle add student
@@ -39,7 +37,7 @@ if (isset($_POST['delete_class']) && isset($_POST['class_index'])) {
   ClassModel::delete($_SESSION['classes'], (int)$_POST['class_index']);
   header('Location: index.php'); exit;
 }
-// ...existing code...
+
 // Handle assign student to class (Create)
 if (isset($_POST['assign']) && isset($_POST['student_id']) && isset($_POST['class_id'])) {
   $sid = (int)$_POST['student_id'];
@@ -59,10 +57,41 @@ if (isset($_POST['assign']) && isset($_POST['student_id']) && isset($_POST['clas
   header('Location: index.php'); exit;
 }
 
+// Handle delete assignment
+if (isset($_POST['delete_assignment']) && isset($_POST['assignment_index'])) {
+  $idx = (int)$_POST['assignment_index'];
+  if (isset($_SESSION['assignments'][$idx])) {
+    array_splice($_SESSION['assignments'], $idx, 1);
+  }
+  header('Location: index.php'); exit;
+}
+
+// Handle edit assignment (show modal)
+$editAssignment = null;
+if (isset($_GET['edit_assignment']) && isset($_GET['assignment_index'])) {
+  $idx = (int)$_GET['assignment_index'];
+  if (isset($_SESSION['assignments'][$idx])) {
+    $editAssignment = [
+      'index' => $idx,
+      'student_id' => $_SESSION['assignments'][$idx]['student_id'],
+      'class_id' => $_SESSION['assignments'][$idx]['class_id']
+    ];
+  }
+}
+
+// Handle update assignment
+if (isset($_POST['update_assignment']) && isset($_POST['assignment_index']) && isset($_POST['student_id']) && isset($_POST['class_id'])) {
+  $idx = (int)$_POST['assignment_index'];
+  $sid = (int)$_POST['student_id'];
+  $cid = (int)$_POST['class_id'];
+  if (isset($_SESSION['assignments'][$idx])) {
+    $_SESSION['assignments'][$idx] = ['student_id' => $sid, 'class_id' => $cid];
+  }
+  header('Location: index.php'); exit;
+}
+
 $students = Student::getAll($_SESSION['students']);
 $classes = ClassModel::getAll($_SESSION['classes']);
-
-// Use assignments from session
 $assignments = $_SESSION['assignments'];
 ?>
 <!doctype html>
@@ -270,15 +299,24 @@ $assignments = $_SESSION['assignments'];
           <ul class="list-group list-group-flush">
             <?php
             $shown = false;
-            foreach ($assignments as $a):
+            foreach ($assignments as $i => $a):
               $sid = $a['student_id'];
               $cid = $a['class_id'];
               // Skip invalid pairs if indexes no longer exist
               if (!isset($students[$sid]) || !isset($classes[$cid])) continue;
               $shown = true;
             ?>
-              <li class="list-group-item">
-                <?= htmlspecialchars($students[$sid]) ?> ➜ <?= htmlspecialchars($classes[$cid]) ?>
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span><?= htmlspecialchars($students[$sid]) ?> ➜ <?= htmlspecialchars($classes[$cid]) ?></span>
+                <span>
+                  <!-- Edit button (link triggers modal via GET) -->
+                  <a href="?edit_assignment=1&assignment_index=<?= $i ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                  <!-- Delete button (form POST) -->
+                  <form method="POST" style="display:inline;">
+                    <input type="hidden" name="assignment_index" value="<?= $i ?>">
+                    <button type="submit" name="delete_assignment" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this assignment?')">Delete</button>
+                  </form>
+                </span>
               </li>
             <?php endforeach; ?>
             <?php if (!$shown): ?>
@@ -287,6 +325,54 @@ $assignments = $_SESSION['assignments'];
           </ul>
         </div>
       </div>
+      <!-- Edit Assignment Modal -->
+      <?php if ($editAssignment): ?>
+        <div class="modal show" tabindex="-1" style="display:block; background:rgba(0,0,0,0.5);">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <form method="POST">
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit Assignment</h5>
+                  <a href="index.php" class="btn-close"></a>
+                </div>
+                <div class="modal-body">
+                  <input type="hidden" name="assignment_index" value="<?= $editAssignment['index'] ?>">
+                  <div class="mb-3">
+                    <label class="form-label">Student</label>
+                    <select class="form-select" name="student_id" required>
+                      <?php foreach ($students as $i => $s): ?>
+                        <option value="<?= $i ?>" <?= $i == $editAssignment['student_id'] ? 'selected' : '' ?>>
+                          <?= htmlspecialchars($s) ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Class</label>
+                    <select class="form-select" name="class_id" required>
+                      <?php foreach ($classes as $i => $c): ?>
+                        <option value="<?= $i ?>" <?= $i == $editAssignment['class_id'] ? 'selected' : '' ?>>
+                          <?= htmlspecialchars($c) ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <a href="index.php" class="btn btn-secondary">Cancel</a>
+                  <button type="submit" class="btn btn-primary" name="update_assignment">Save changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <script>
+          // Auto-close modal on background click
+          document.querySelector('.modal').addEventListener('click', function(e) {
+            if (e.target === this) window.location = 'index.php';
+          });
+        </script>
+      <?php endif; ?>
     </div>
   </div>
 </div>
